@@ -44,19 +44,56 @@ router.get('/staff', async (req, res) => {
 router.put('/staff/:staffno', async (req, res) => {
   const { staffno } = req.params;
   const { fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email } = req.body;
+  let updateFields = [];
+  let updateValues = {};
+  if (fname !== undefined) {
+    updateFields.push("FNAME = :fname");
+    updateValues.fname = fname;
+  }
+  if (lname !== undefined) {
+    updateFields.push("LNAME = :lname");
+    updateValues.lname = lname;
+  }
+  if (position !== undefined) {
+    updateFields.push("POSITION = :position");
+    updateValues.position = position;
+  }
+  if (sex !== undefined) {
+    updateFields.push("SEX = :sex");
+    updateValues.sex = sex;
+  }
+  if (dob !== undefined) {
+    updateFields.push("DOB = TO_DATE(:dob, 'YYYY-MM-DD')");
+    updateValues.dob = dob;
+  }
+  if (salary !== undefined) {
+    updateFields.push("SALARY = :salary");
+    updateValues.salary = salary;
+  }
+  if (branchno !== undefined) {
+    updateFields.push("BRANCHNO = :branchno");
+    updateValues.branchno = branchno;
+  }
+  if (telephone !== undefined) {
+    updateFields.push("TELEPHONE = :telephone");
+    updateValues.telephone = telephone;
+  }
+  if (mobile !== undefined) {
+    updateFields.push("MOBILE = :mobile");
+    updateValues.mobile = mobile;
+  }
+  if (email !== undefined) {
+    updateFields.push("EMAIL = :email");
+    updateValues.email = email;
+  }
+  updateValues.staffno = staffno;
+  const updateQuery = `UPDATE DH_STAFF SET ${updateFields.join(", ")} WHERE STAFFNO = :staffno`;
   try {
     const connection = await getConnection();
-    await connection.execute(
-      `UPDATE DH_STAFF SET FNAME = :fname, LNAME = :lname, POSITION = :position, SEX = :sex, DOB = TO_DATE(:dob, 'YYYY-MM-DD'),
-       SALARY = :salary, BRANCHNO = :branchno, TELEPHONE = :telephone, MOBILE = :mobile, EMAIL = :email
-       WHERE STAFFNO = :staffno`,
-      { fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email, staffno },
-      { autoCommit: true }
-    );
+    await connection.execute(updateQuery, updateValues, { autoCommit: true });
     res.send('Staff member updated successfully');
   } catch (err) {
     console.error('Error updating data:', err.message);
-    console.error('Stack Trace:', err.stack);
     res.status(500).send(`Error updating data: ${err.message}`);
   }
 });

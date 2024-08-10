@@ -40,6 +40,30 @@ router.get('/branches', async (req, res) => {
   }
 });
 
+// Get branch address by BRANCHNO
+router.get('/branch/:branchno', async (req, res) => {
+  const { branchno } = req.params;
+  
+  try {
+    const connection = await getConnection();
+    const result = await connection.execute(
+      `SELECT STREET || ', ' || CITY AS address
+       FROM dh_branch 
+       WHERE BRANCHNO = :branchno`,
+      { branchno }
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).send('Branch not found');
+    } else {
+      res.json({ address: result.rows[0][0] });
+    }
+  } catch (err) {
+    console.error('Error fetching branch address:', err.message);
+    res.status(500).send(`Error fetching branch address: ${err.message}`);
+  }
+});
+
 // Update a branch
 router.put('/branches/:branchno', async (req, res) => {
   const { branchno } = req.params;
