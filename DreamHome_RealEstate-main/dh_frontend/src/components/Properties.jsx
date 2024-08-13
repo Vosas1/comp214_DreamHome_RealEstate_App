@@ -21,8 +21,13 @@ function Properties() {
     floorplan: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');  // Added error message state
 
   useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = () => {
     fetch('http://localhost:3001/api/properties')
       .then(response => response.json())
       .then(data => {
@@ -30,7 +35,7 @@ function Properties() {
         setFilteredProperties(data);
       })
       .catch(error => console.error('Error fetching properties:', error));
-  }, []);
+  };
 
   useEffect(() => {
     handleSearchAndFilter();
@@ -66,6 +71,7 @@ function Properties() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setErrorMessage('');  // Clear previous error message
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing
       ? `http://localhost:3001/api/properties/${newProperty.propertyno}`
@@ -78,13 +84,18 @@ function Properties() {
       },
       body: JSON.stringify(newProperty)
     })
-      .then(response => response.json())
-      .then(data => {
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(text); });
+        }
+        return response.json();
+      })
+      .then((data) => {
         if (isEditing) {
-          setProperties(properties.map(property => (property[0] === newProperty.propertyno ? newProperty : property)));
+          setProperties(properties.map(property => (property[0] === newProperty.propertyno ? data : property)));
           setIsEditing(false);
         } else {
-          setProperties([...properties, data]);
+          setProperties([...properties, data]); // Add new property to the properties array
         }
         setFilteredProperties(properties);
         setNewProperty({
@@ -101,8 +112,12 @@ function Properties() {
           picture: '',
           floorplan: ''
         });
+        fetchProperties(); // Refetch data after submit
       })
-      .catch(error => console.error('Error creating/updating property:', error));
+      .catch(error => {
+        console.error('Error creating/updating property:', error);
+        setErrorMessage('Incorrect configuration. Please check the input values.');
+      });
   };
 
   const handleEdit = (property) => {
@@ -114,9 +129,11 @@ function Properties() {
     fetch(`http://localhost:3001/api/properties/${propertyno}`, {
       method: 'DELETE',
     })
-      .then(() => {
-        setProperties(properties.filter(property => property[0] !== propertyno));
-        setFilteredProperties(properties.filter(property => property[0] !== propertyno));
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to delete data');
+        }
+        fetchProperties(); // Refetch data after delete
       })
       .catch(error => console.error('Error deleting property:', error));
   };
@@ -124,6 +141,7 @@ function Properties() {
   return (
     <div>
       <h2>Properties</h2>
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}  {/* Display error message */}
       <div>
         <input
           type="text"

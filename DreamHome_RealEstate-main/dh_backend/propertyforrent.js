@@ -19,7 +19,9 @@ router.post('/propertyforrent', async (req, res) => {
       { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan },
       { autoCommit: true }
     );
-    res.status(201).send('Property for rent created successfully');
+    
+    const newProperty = { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan };
+    res.status(201).json(newProperty);
   } catch (err) {
     console.error('Error inserting data:', err.message);
     console.error('Stack Trace:', err.stack);
@@ -53,7 +55,9 @@ router.put('/propertyforrent/:propertyno', async (req, res) => {
       { street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan, propertyno },
       { autoCommit: true }
     );
-    res.send('Property for rent updated successfully');
+
+    const updatedProperty = { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan };
+    res.status(200).json(updatedProperty);
   } catch (err) {
     console.error('Error updating data:', err.message);
     console.error('Stack Trace:', err.stack);

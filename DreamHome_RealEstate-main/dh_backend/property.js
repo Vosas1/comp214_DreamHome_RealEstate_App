@@ -19,11 +19,16 @@ router.post('/properties', async (req, res) => {
       { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan },
       { autoCommit: true }
     );
-    res.status(201).send('Property created successfully');
+
+    const newProperty = { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan };
+    res.status(201).json(newProperty);
   } catch (err) {
-    console.error('Error inserting data:', err.message);
-    console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error inserting data: ${err.message}`);
+    if (err.message.includes('ORA-02291')) {
+      res.status(400).send('Failed to insert property: Owner number does not exist. Please provide a valid owner number.');
+    } else {
+      console.error('Error inserting data:', err.message);
+      res.status(500).send(`Error inserting data: ${err.message}`);
+    }
   }
 });
 
@@ -52,7 +57,9 @@ router.put('/properties/:propertyno', async (req, res) => {
       { street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan, propertyno },
       { autoCommit: true }
     );
-    res.send('Property updated successfully');
+
+    const updatedProperty = { propertyno, street, city, postcode, type, rooms, rent, ownerno, staffno, branchno, picture, floorplan };
+    res.status(200).json(updatedProperty);
   } catch (err) {
     console.error('Error updating data:', err.message);
     console.error('Stack Trace:', err.stack);

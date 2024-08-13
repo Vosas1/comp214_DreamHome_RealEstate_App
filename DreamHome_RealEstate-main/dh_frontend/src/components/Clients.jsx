@@ -20,6 +20,10 @@ function Clients() {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = () => {
     fetch('http://localhost:3001/api/clients')
       .then(response => response.json())
       .then(data => {
@@ -27,7 +31,7 @@ function Clients() {
         setFilteredClients(data);
       })
       .catch(error => console.error('Error fetching clients:', error));
-  }, []);
+  };
 
   useEffect(() => {
     handleSearchAndFilter();
@@ -75,15 +79,19 @@ function Clients() {
       },
       body: JSON.stringify(newClient)
     })
-      .then(response => response.json())
-      .then(data => {
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to save data');
+        }
+        return response.json();
+      })
+      .then((data) => {
         if (isEditing) {
-          setClients(clients.map(client => (client[0] === newClient.clientno ? newClient : client)));
+          setClients(clients.map(client => (client[0] === newClient.clientno ? data : client)));
           setIsEditing(false);
         } else {
-          setClients([...clients, data]);
+          setClients([...clients, data]); // Add new client to the clients array
         }
-        setFilteredClients(clients);
         setNewClient({
           clientno: '',
           fname: '',
@@ -95,6 +103,7 @@ function Clients() {
           preftype: '',
           maxrent: ''
         });
+        fetchClients(); // Refetch data after submit
       })
       .catch(error => console.error('Error creating/updating client:', error));
   };
@@ -108,9 +117,11 @@ function Clients() {
     fetch(`http://localhost:3001/api/clients/${clientno}`, {
       method: 'DELETE',
     })
-      .then(() => {
-        setClients(clients.filter(client => client[0] !== clientno));
-        setFilteredClients(clients.filter(client => client[0] !== clientno));
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to delete data');
+        }
+        fetchClients(); // Refetch data after delete
       })
       .catch(error => console.error('Error deleting client:', error));
   };

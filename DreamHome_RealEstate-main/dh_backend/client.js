@@ -13,13 +13,27 @@ router.post('/clients', async (req, res) => {
   const { clientno, fname, lname, telno, street, city, email, preftype, maxrent } = req.body;
   try {
     const connection = await getConnection();
-    await connection.execute(
+    const result = await connection.execute(
       `INSERT INTO DH_CLIENT (CLIENTNO, FNAME, LNAME, TELNO, STREET, CITY, EMAIL, PREFTYPE, MAXRENT)
        VALUES (:clientno, :fname, :lname, :telno, :street, :city, :email, :preftype, :maxrent)`,
       [clientno, fname, lname, telno, street, city, email, preftype, maxrent],
       { autoCommit: true }
     );
-    res.status(201).send('Client created successfully');
+
+    // Return the newly created client
+    const newClient = {
+      clientno,
+      fname,
+      lname,
+      telno,
+      street,
+      city,
+      email,
+      preftype,
+      maxrent
+    };
+
+    res.status(201).json(newClient);
   } catch (err) {
     console.error('Error inserting data', err);
     res.status(500).send('Error inserting data');
@@ -50,7 +64,21 @@ router.put('/clients/:clientno', async (req, res) => {
       [fname, lname, telno, street, city, email, preftype, maxrent, clientno],
       { autoCommit: true }
     );
-    res.send('Client updated successfully');
+
+    // Return the updated client
+    const updatedClient = {
+      clientno,
+      fname,
+      lname,
+      telno,
+      street,
+      city,
+      email,
+      preftype,
+      maxrent
+    };
+
+    res.status(200).json(updatedClient);
   } catch (err) {
     console.error('Error updating data', err);
     res.status(500).send('Error updating data');
