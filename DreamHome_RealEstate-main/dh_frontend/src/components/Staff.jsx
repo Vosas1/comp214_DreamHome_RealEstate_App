@@ -42,7 +42,7 @@ function Staff() {
     const url = isEditing
       ? `http://localhost:3001/api/staff/${newStaff.staffno}`
       : 'http://localhost:3001/api/staff';
-
+  
     fetch(url, {
       method: method,
       headers: {
@@ -57,6 +57,12 @@ function Staff() {
         return response.json();
       })
       .then(data => {
+        if (isEditing) {
+          setStaff(staff.map(member => (member.staffno === newStaff.staffno ? data : member)));
+          setIsEditing(false);
+        } else {
+          setStaff([...staff, data]); // Add new staff to the staff array
+        }
         setNewStaff({
           staffno: '',
           fname: '',
@@ -70,11 +76,11 @@ function Staff() {
           mobile: '',
           email: ''
         });
-        setIsEditing(false);
-        fetchStaffData(); // Refetch data after submit
+        fetchStaffData();
       })
       .catch(error => console.error('Error creating/updating staff:', error));
   };
+  
 
   const handleEdit = (member) => {
     setNewStaff(member);

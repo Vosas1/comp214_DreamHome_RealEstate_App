@@ -8,9 +8,12 @@ async function getConnection() {
   return await oracledb.getConnection(dbConfig);
 }
 
-// Create a new staff member
+// Add a staff
 router.post('/staff', async (req, res) => {
   const { staffno, fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email } = req.body;
+  
+  // Add input validation here (e.g., using Joi or custom logic)
+
   try {
     const connection = await getConnection();
     await connection.execute(
@@ -19,13 +22,18 @@ router.post('/staff', async (req, res) => {
       { staffno, fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email },
       { autoCommit: true }
     );
-    res.status(201).send('Staff member created successfully');
+
+    // Return the newly created staff member
+    const newStaff = { staffno, fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email };
+    res.status(201).json(newStaff);
   } catch (err) {
     console.error('Error inserting data:', err.message);
     console.error('Stack Trace:', err.stack);
     res.status(500).send(`Error inserting data: ${err.message}`);
   }
 });
+
+
 
 // Read all staff members
 router.get('/staff', async (req, res) => {
