@@ -1,11 +1,11 @@
 import React from 'react';
-import StaffList from '../components/StaffList';
+import Staff from '../components/Staff';
 
 const StaffPage = () => {
   return (
     <div className="container">
       <h1 className="page-title">Staff Page</h1>
-      <StaffList />
+      <Staff />
     </div>
   );
 };

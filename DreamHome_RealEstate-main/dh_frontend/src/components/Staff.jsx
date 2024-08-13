@@ -18,11 +18,15 @@ function Staff() {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    fetchStaffData();
+  }, []);
+
+  const fetchStaffData = () => {
     fetch('http://localhost:3001/api/staff')
       .then(response => response.json())
       .then(data => setStaff(data))
       .catch(error => console.error('Error fetching staff:', error));
-  }, []);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,14 +50,13 @@ function Staff() {
       },
       body: JSON.stringify(newStaff)
     })
-      .then(response => response.json())
-      .then(data => {
-        if (isEditing) {
-          setStaff(staff.map(member => (member[0] === newStaff.staffno ? newStaff : member)));
-          setIsEditing(false);
-        } else {
-          setStaff([...staff, data]);
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to save data');
         }
+        return response.json();
+      })
+      .then(data => {
         setNewStaff({
           staffno: '',
           fname: '',
@@ -67,6 +70,8 @@ function Staff() {
           mobile: '',
           email: ''
         });
+        setIsEditing(false);
+        fetchStaffData(); // Refetch data after submit
       })
       .catch(error => console.error('Error creating/updating staff:', error));
   };
@@ -80,10 +85,51 @@ function Staff() {
     fetch(`http://localhost:3001/api/staff/${staffno}`, {
       method: 'DELETE',
     })
-      .then(() => {
-        setStaff(staff.filter(member => member[0] !== staffno));
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to delete data');
+        }
+        fetchStaffData(); // Refetch data after delete
       })
       .catch(error => console.error('Error deleting staff:', error));
+  };
+
+  const handleUpdateAll = () => {
+    const updatedFields = Object.fromEntries(
+      Object.entries(newStaff).filter(([key, value]) => value !== null && value !== '')
+    );
+  
+    fetch('http://localhost:3001/api/staff', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedFields)
+    })
+      .then(response => {
+        if (response.ok) {
+          alert('All staff members updated successfully');
+          setNewStaff({
+            staffno: '',
+            fname: '',
+            lname: '',
+            position: '',
+            sex: '',
+            dob: '',
+            salary: '',
+            branchno: '',
+            telephone: '',
+            mobile: '',
+            email: ''
+          });
+          fetchStaffData(); // Refetch data after updating all
+        } else {
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Unknown error occurred');
+          });
+        }
+      })
+      .catch(error => console.error('Error updating all staff members:', error));
   };
 
   return (
@@ -179,6 +225,7 @@ function Staff() {
           onChange={handleInputChange}
         />
         <button type="submit">{isEditing ? 'Update Staff Member' : 'Add Staff Member'}</button>
+        <button type="button" onClick={handleUpdateAll}>Update All Staff Members</button>
       </form>
     </div>
   );

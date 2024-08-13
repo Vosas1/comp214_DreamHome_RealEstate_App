@@ -4,6 +4,7 @@ function Branches() {
   const [branches, setBranches] = useState([]);
   const [filteredBranches, setFilteredBranches] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [branchNumberSearchTerm, setBranchNumberSearchTerm] = useState(''); // New state for branch number search
   const [filterCity, setFilterCity] = useState('');
   const [newBranch, setNewBranch] = useState({
     branchno: '',
@@ -12,8 +13,18 @@ function Branches() {
     postcode: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submitButtonLabel, setSubmitButtonLabel] = useState('Add Branch');
 
   useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  useEffect(() => {
+    handleSearchAndFilter();
+  }, [searchTerm, filterCity, branchNumberSearchTerm]); // Added branchNumberSearchTerm as a dependency
+
+  const fetchBranches = () => {
     fetch('http://localhost:3001/api/branches')
       .then(response => response.json())
       .then(data => {
@@ -21,11 +32,7 @@ function Branches() {
         setFilteredBranches(data);
       })
       .catch(error => console.error('Error fetching branches:', error));
-  }, []);
-
-  useEffect(() => {
-    handleSearchAndFilter();
-  }, [searchTerm, filterCity]);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -48,11 +55,18 @@ function Branches() {
       filtered = filtered.filter(branch => branch[2] === filterCity);
     }
 
+    if (branchNumberSearchTerm) {
+      filtered = filtered.filter(branch =>
+        branch[0].toLowerCase().includes(branchNumberSearchTerm.toLowerCase())
+      );
+    }
+
     setFilteredBranches(filtered);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setErrorMessage('');
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing
       ? `http://localhost:3001/api/branches/${newBranch.branchno}`
@@ -65,23 +79,41 @@ function Branches() {
       },
       body: JSON.stringify(newBranch)
     })
-      .then(response => response.json())
-      .then(data => {
-        if (isEditing) {
-          setBranches(branches.map(branch => (branch[0] === newBranch.branchno ? newBranch : branch)));
-          setIsEditing(false);
+      .then(response => {
+        if (response.ok) {
+          // Handle successful response
+          if (isEditing) {
+            setBranches(branches.map(branch => (branch[0] === newBranch.branchno ? newBranch : branch)));
+            setIsEditing(false);
+          } else {
+            setBranches([...branches, newBranch]);
+            setFilteredBranches([...branches, newBranch]);
+            // Show success and reset form
+            setSubmitButtonLabel('Success');
+            setTimeout(() => setSubmitButtonLabel('Add Branch'), 2000);
+            setNewBranch({
+              branchno: '',
+              street: '',
+              city: '',
+              postcode: ''
+            });
+            fetchBranches(); // Refresh the list
+          }
         } else {
-          setBranches([...branches, data]);
+          // Handle non-successful responses
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Unknown error occurred');
+          });
         }
-        setFilteredBranches(branches);
-        setNewBranch({
-          branchno: '',
-          street: '',
-          city: '',
-          postcode: ''
-        });
       })
-      .catch(error => console.error('Error creating/updating branch:', error));
+      .catch(error => {
+        if (error.message.includes('ORA-00001')) {
+          setErrorMessage('A branch with this branch number already exists. Please use a unique branch number.');
+        } else {
+          setErrorMessage('Error creating/updating branch: ' + error.message);
+        }
+        console.error('Error creating/updating branch:', error);
+      });
   };
 
   const handleEdit = (branch) => {
@@ -103,12 +135,19 @@ function Branches() {
   return (
     <div>
       <h2>Branches</h2>
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
       <div>
         <input
           type="text"
           placeholder="Search by Street"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Search by Branch Number"
+          value={branchNumberSearchTerm}
+          onChange={e => setBranchNumberSearchTerm(e.target.value)}
         />
         <select onChange={e => setFilterCity(e.target.value)} value={filterCity}>
           <option value="">All Cities</option>
@@ -159,7 +198,7 @@ function Branches() {
           value={newBranch.postcode}
           onChange={handleInputChange}
         />
-        <button type="submit">{isEditing ? 'Update Branch' : 'Add Branch'}</button>
+        <button type="submit">{submitButtonLabel}</button>
       </form>
     </div>
   );

@@ -61,6 +61,41 @@ router.put('/staff/:staffno', async (req, res) => {
   }
 });
 
+// Update all staff members
+router.put('/staff', async (req, res) => {
+  const { fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email } = req.body;
+  const updates = {};
+
+  if (fname) updates.FNAME = fname;
+  if (lname) updates.LNAME = lname;
+  if (position) updates.POSITION = position;
+  if (sex) updates.SEX = sex;
+  if (dob) updates.DOB = `TO_DATE('${dob}', 'YYYY-MM-DD')`; // Ensure date format is correct
+  if (salary) updates.SALARY = salary;
+  if (branchno) updates.BRANCHNO = branchno;
+  if (telephone) updates.TELEPHONE = telephone;
+  if (mobile) updates.MOBILE = mobile;
+  if (email) updates.EMAIL = email;
+
+  // Construct the SQL update statement dynamically based on provided fields
+  let updateQuery = 'UPDATE DH_STAFF SET ';
+  const updateKeys = Object.keys(updates);
+  updateQuery += updateKeys.map((key, index) => `${key} = :${key}`).join(', ');
+  
+  try {
+    const connection = await getConnection();
+    await connection.execute(
+      updateQuery,
+      updates,
+      { autoCommit: true }
+    );
+    res.send('All staff members updated successfully');
+  } catch (err) {
+    console.error('Error updating data:', err.message);
+    console.error('Stack Trace:', err.stack);
+    res.status(500).send(`Error updating data: ${err.message}`);
+  }
+});
 // Delete a staff member
 router.delete('/staff/:staffno', async (req, res) => {
   const { staffno } = req.params;
