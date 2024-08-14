@@ -19,11 +19,11 @@ router.post('/branches', async (req, res) => {
       { branchno, street, city, postcode },
       { autoCommit: true }
     );
-    res.status(201).send('Branch created successfully');
+    const newBranch = { branchno, street, city, postcode };
+    res.status(201).json(newBranch);
   } catch (err) {
     console.error('Error inserting data:', err.message);
-    console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error inserting data: ${err.message}`);
+    res.status(500).json({ error: `Error inserting data: ${err.message}` });
   }
 });
 
@@ -35,8 +35,7 @@ router.get('/branches', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching data:', err.message);
-    console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error fetching data: ${err.message}`);
+    res.status(500).json({ error: `Error fetching data: ${err.message}` });
   }
 });
 
@@ -46,17 +45,22 @@ router.put('/branches/:branchno', async (req, res) => {
   const { street, city, postcode } = req.body;
   try {
     const connection = await getConnection();
-    await connection.execute(
+    const result = await connection.execute(
       `UPDATE DH_BRANCH SET STREET = :street, CITY = :city, POSTCODE = :postcode
        WHERE BRANCHNO = :branchno`,
       { street, city, postcode, branchno },
       { autoCommit: true }
     );
-    res.send('Branch updated successfully');
+
+    if (result.rowsAffected === 0) {
+      res.status(404).json({ error: 'Branch not found' });
+    } else {
+      const updatedBranch = { branchno, street, city, postcode };
+      res.status(200).json(updatedBranch);
+    }
   } catch (err) {
     console.error('Error updating data:', err.message);
-    console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error updating data: ${err.message}`);
+    res.status(500).json({ error: `Error updating data: ${err.message}` });
   }
 });
 
@@ -65,16 +69,20 @@ router.delete('/branches/:branchno', async (req, res) => {
   const { branchno } = req.params;
   try {
     const connection = await getConnection();
-    await connection.execute(
+    const result = await connection.execute(
       `DELETE FROM DH_BRANCH WHERE BRANCHNO = :branchno`,
       { branchno },
       { autoCommit: true }
     );
-    res.send('Branch deleted successfully');
+
+    if (result.rowsAffected === 0) {
+      res.status(404).json({ error: 'Branch not found' });
+    } else {
+      res.json({ message: 'Branch deleted successfully' });
+    }
   } catch (err) {
     console.error('Error deleting data:', err.message);
-    console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error deleting data: ${err.message}`);
+    res.status(500).json({ error: `Error deleting data: ${err.message}` });
   }
 });
 

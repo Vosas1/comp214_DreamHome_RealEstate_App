@@ -18,10 +18,15 @@ function Clients() {
     maxrent: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    handleSearchAndFilter();
+  }, [searchTerm, filterCity, filterPrefType]);
 
   const fetchClients = () => {
     fetch('http://localhost:3001/api/clients')
@@ -32,10 +37,6 @@ function Clients() {
       })
       .catch(error => console.error('Error fetching clients:', error));
   };
-
-  useEffect(() => {
-    handleSearchAndFilter();
-  }, [searchTerm, filterCity, filterPrefType]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,6 +68,7 @@ function Clients() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setErrorMessage('');
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing
       ? `http://localhost:3001/api/clients/${newClient.clientno}`
@@ -80,10 +82,13 @@ function Clients() {
       body: JSON.stringify(newClient)
     })
       .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to save data');
+        if (response.ok) {
+          return response.json(); // Return JSON response
+        } else {
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Unknown error occurred');
+          });
         }
-        return response.json();
       })
       .then((data) => {
         if (isEditing) {
@@ -105,11 +110,24 @@ function Clients() {
         });
         fetchClients(); // Refetch data after submit
       })
-      .catch(error => console.error('Error creating/updating client:', error));
+      .catch(error => {
+        setErrorMessage('Error creating/updating client: ' + error.message);
+        console.error('Error creating/updating client:', error);
+      });
   };
 
   const handleEdit = (client) => {
-    setNewClient(client);
+    setNewClient({
+      clientno: client[0],
+      fname: client[1],
+      lname: client[2],
+      telno: client[3],
+      street: client[4],
+      city: client[5],
+      email: client[6],
+      preftype: client[7],
+      maxrent: client[8]
+    });
     setIsEditing(true);
   };
 
@@ -118,10 +136,14 @@ function Clients() {
       method: 'DELETE',
     })
       .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to delete data');
+        if (response.ok) {
+          setClients(clients.filter(client => client[0] !== clientno));
+          setFilteredClients(clients.filter(client => client[0] !== clientno));
+        } else {
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Failed to delete client');
+          });
         }
-        fetchClients(); // Refetch data after delete
       })
       .catch(error => console.error('Error deleting client:', error));
   };
@@ -129,6 +151,7 @@ function Clients() {
   return (
     <div>
       <h2>Clients</h2>
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
       <div>
         <input
           type="text"

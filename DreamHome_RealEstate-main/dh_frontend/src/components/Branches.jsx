@@ -4,7 +4,7 @@ function Branches() {
   const [branches, setBranches] = useState([]);
   const [filteredBranches, setFilteredBranches] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [branchNumberSearchTerm, setBranchNumberSearchTerm] = useState(''); // New state for branch number search
+  const [branchNumberSearchTerm, setBranchNumberSearchTerm] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [newBranch, setNewBranch] = useState({
     branchno: '',
@@ -22,7 +22,7 @@ function Branches() {
 
   useEffect(() => {
     handleSearchAndFilter();
-  }, [searchTerm, filterCity, branchNumberSearchTerm]); // Added branchNumberSearchTerm as a dependency
+  }, [searchTerm, filterCity, branchNumberSearchTerm]);
 
   const fetchBranches = () => {
     fetch('http://localhost:3001/api/branches')
@@ -81,30 +81,31 @@ function Branches() {
     })
       .then(response => {
         if (response.ok) {
-          // Handle successful response
-          if (isEditing) {
-            setBranches(branches.map(branch => (branch[0] === newBranch.branchno ? newBranch : branch)));
-            setIsEditing(false);
-          } else {
-            setBranches([...branches, newBranch]);
-            setFilteredBranches([...branches, newBranch]);
-            // Show success and reset form
-            setSubmitButtonLabel('Success');
-            setTimeout(() => setSubmitButtonLabel('Add Branch'), 2000);
-            setNewBranch({
-              branchno: '',
-              street: '',
-              city: '',
-              postcode: ''
-            });
-            fetchBranches(); // Refresh the list
-          }
+          return response.json(); 
         } else {
-          // Handle non-successful responses
           return response.text().then(errorData => {
             throw new Error(errorData || 'Unknown error occurred');
           });
         }
+      })
+      .then(data => {
+        if (isEditing) {
+          setBranches(branches.map(branch => (branch[0] === newBranch.branchno ? data : branch)));
+          setIsEditing(false);
+          setSubmitButtonLabel('Add Branch');
+        } else {
+          setBranches([...branches, data]);
+          setFilteredBranches([...branches, data]);
+          setSubmitButtonLabel('Success');
+          setTimeout(() => setSubmitButtonLabel('Add Branch'), 2000);
+          setNewBranch({
+            branchno: '',
+            street: '',
+            city: '',
+            postcode: ''
+          });
+        }
+        fetchBranches(); 
       })
       .catch(error => {
         if (error.message.includes('ORA-00001')) {
@@ -117,21 +118,33 @@ function Branches() {
   };
 
   const handleEdit = (branch) => {
-    setNewBranch(branch);
+    setNewBranch({
+      branchno: branch[0],
+      street: branch[1],
+      city: branch[2],
+      postcode: branch[3]
+    });
     setIsEditing(true);
+    setSubmitButtonLabel('Update Branch'); // Change the button label when editing
   };
 
   const handleDelete = (branchno) => {
     fetch(`http://localhost:3001/api/branches/${branchno}`, {
       method: 'DELETE',
     })
-      .then(() => {
-        setBranches(branches.filter(branch => branch[0] !== branchno));
-        setFilteredBranches(branches.filter(branch => branch[0] !== branchno));
+      .then(response => {
+        if (response.ok) {
+          setBranches(branches.filter(branch => branch[0] !== branchno));
+          setFilteredBranches(filteredBranches.filter(branch => branch[0] !== branchno));
+        } else {
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Failed to delete branch');
+          });
+        }
       })
       .catch(error => console.error('Error deleting branch:', error));
   };
-
+  
   return (
     <div>
       <h2>Branches</h2>
@@ -175,7 +188,7 @@ function Branches() {
           placeholder="Branch Number"
           value={newBranch.branchno}
           onChange={handleInputChange}
-          readOnly={isEditing} // Branch number should not be edited while updating
+          readOnly={isEditing} 
         />
         <input
           type="text"

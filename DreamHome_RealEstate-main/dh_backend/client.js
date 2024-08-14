@@ -13,14 +13,13 @@ router.post('/clients', async (req, res) => {
   const { clientno, fname, lname, telno, street, city, email, preftype, maxrent } = req.body;
   try {
     const connection = await getConnection();
-    const result = await connection.execute(
+    await connection.execute(
       `INSERT INTO DH_CLIENT (CLIENTNO, FNAME, LNAME, TELNO, STREET, CITY, EMAIL, PREFTYPE, MAXRENT)
        VALUES (:clientno, :fname, :lname, :telno, :street, :city, :email, :preftype, :maxrent)`,
-      [clientno, fname, lname, telno, street, city, email, preftype, maxrent],
+      { clientno, fname, lname, telno, street, city, email, preftype, maxrent },
       { autoCommit: true }
     );
 
-    // Return the newly created client
     const newClient = {
       clientno,
       fname,
@@ -35,8 +34,8 @@ router.post('/clients', async (req, res) => {
 
     res.status(201).json(newClient);
   } catch (err) {
-    console.error('Error inserting data', err);
-    res.status(500).send('Error inserting data');
+    console.error('Error inserting data:', err.message);
+    res.status(500).json({ error: `Error inserting data: ${err.message}` });
   }
 });
 
@@ -47,8 +46,8 @@ router.get('/clients', async (req, res) => {
     const result = await connection.execute(`SELECT * FROM DH_CLIENT`);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching data', err);
-    res.status(500).send('Error fetching data');
+    console.error('Error fetching data:', err.message);
+    res.status(500).json({ error: `Error fetching data: ${err.message}` });
   }
 });
 
@@ -58,30 +57,32 @@ router.put('/clients/:clientno', async (req, res) => {
   const { fname, lname, telno, street, city, email, preftype, maxrent } = req.body;
   try {
     const connection = await getConnection();
-    await connection.execute(
+    const result = await connection.execute(
       `UPDATE DH_CLIENT SET FNAME = :fname, LNAME = :lname, TELNO = :telno, STREET = :street, CITY = :city, EMAIL = :email, PREFTYPE = :preftype, MAXRENT = :maxrent
        WHERE CLIENTNO = :clientno`,
-      [fname, lname, telno, street, city, email, preftype, maxrent, clientno],
+      { fname, lname, telno, street, city, email, preftype, maxrent, clientno },
       { autoCommit: true }
     );
 
-    // Return the updated client
-    const updatedClient = {
-      clientno,
-      fname,
-      lname,
-      telno,
-      street,
-      city,
-      email,
-      preftype,
-      maxrent
-    };
-
-    res.status(200).json(updatedClient);
+    if (result.rowsAffected === 0) {
+      res.status(404).json({ error: 'Client not found' });
+    } else {
+      const updatedClient = {
+        clientno,
+        fname,
+        lname,
+        telno,
+        street,
+        city,
+        email,
+        preftype,
+        maxrent
+      };
+      res.status(200).json(updatedClient);
+    }
   } catch (err) {
-    console.error('Error updating data', err);
-    res.status(500).send('Error updating data');
+    console.error('Error updating data:', err.message);
+    res.status(500).json({ error: `Error updating data: ${err.message}` });
   }
 });
 
@@ -90,15 +91,20 @@ router.delete('/clients/:clientno', async (req, res) => {
   const { clientno } = req.params;
   try {
     const connection = await getConnection();
-    await connection.execute(
+    const result = await connection.execute(
       `DELETE FROM DH_CLIENT WHERE CLIENTNO = :clientno`,
-      [clientno],
+      { clientno },
       { autoCommit: true }
     );
-    res.send('Client deleted successfully');
+
+    if (result.rowsAffected === 0) {
+      res.status(404).json({ error: 'Client not found' });
+    } else {
+      res.json({ message: 'Client deleted successfully' });
+    }
   } catch (err) {
-    console.error('Error deleting data', err);
-    res.status(500).send('Error deleting data');
+    console.error('Error deleting data:', err.message);
+    res.status(500).json({ error: `Error deleting data: ${err.message}` });
   }
 });
 

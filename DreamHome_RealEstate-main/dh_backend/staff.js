@@ -11,8 +11,6 @@ async function getConnection() {
 // Add a staff
 router.post('/staff', async (req, res) => {
   const { staffno, fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email } = req.body;
-  
-  // Add input validation here (e.g., using Joi or custom logic)
 
   try {
     const connection = await getConnection();
@@ -29,11 +27,9 @@ router.post('/staff', async (req, res) => {
   } catch (err) {
     console.error('Error inserting data:', err.message);
     console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error inserting data: ${err.message}`);
+    res.status(500).json({ error: `Error inserting data: ${err.message}` });
   }
 });
-
-
 
 // Read all staff members
 router.get('/staff', async (req, res) => {
@@ -44,30 +40,44 @@ router.get('/staff', async (req, res) => {
   } catch (err) {
     console.error('Error fetching data:', err.message);
     console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error fetching data: ${err.message}`);
+    res.status(500).json({ error: `Error fetching data: ${err.message}` });
   }
 });
 
-// Update a staff member
 router.put('/staff/:staffno', async (req, res) => {
   const { staffno } = req.params;
   const { fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email } = req.body;
+
+  // Ensure dob is in the correct format (YYYY-MM-DD)
+  let formattedDob = dob.split('T')[0];  // Extract the date part only (YYYY-MM-DD)
+
   try {
     const connection = await getConnection();
     await connection.execute(
-      `UPDATE DH_STAFF SET FNAME = :fname, LNAME = :lname, POSITION = :position, SEX = :sex, DOB = TO_DATE(:dob, 'YYYY-MM-DD'),
-       SALARY = :salary, BRANCHNO = :branchno, TELEPHONE = :telephone, MOBILE = :mobile, EMAIL = :email
+      `UPDATE DH_STAFF SET 
+         FNAME = :fname, 
+         LNAME = :lname, 
+         POSITION = :position, 
+         SEX = :sex, 
+         DOB = TO_DATE(:dob, 'YYYY-MM-DD'), 
+         SALARY = :salary, 
+         BRANCHNO = :branchno, 
+         TELEPHONE = :telephone, 
+         MOBILE = :mobile, 
+         EMAIL = :email
        WHERE STAFFNO = :staffno`,
-      { fname, lname, position, sex, dob, salary, branchno, telephone, mobile, email, staffno },
+      { fname, lname, position, sex, dob: formattedDob, salary, branchno, telephone, mobile, email, staffno },
       { autoCommit: true }
     );
-    res.send('Staff member updated successfully');
+    res.json({ message: 'Staff member updated successfully' });
   } catch (err) {
     console.error('Error updating data:', err.message);
     console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error updating data: ${err.message}`);
+    res.status(500).json({ error: `Error updating data: ${err.message}` });
   }
 });
+
+
 
 // Update all staff members
 router.put('/staff', async (req, res) => {
@@ -89,7 +99,7 @@ router.put('/staff', async (req, res) => {
   let updateQuery = 'UPDATE DH_STAFF SET ';
   const updateKeys = Object.keys(updates);
   updateQuery += updateKeys.map((key, index) => `${key} = :${key}`).join(', ');
-  
+
   try {
     const connection = await getConnection();
     await connection.execute(
@@ -97,13 +107,14 @@ router.put('/staff', async (req, res) => {
       updates,
       { autoCommit: true }
     );
-    res.send('All staff members updated successfully');
+    res.json({ message: 'All staff members updated successfully' });
   } catch (err) {
     console.error('Error updating data:', err.message);
     console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error updating data: ${err.message}`);
+    res.status(500).json({ error: `Error updating data: ${err.message}` });
   }
 });
+
 // Delete a staff member
 router.delete('/staff/:staffno', async (req, res) => {
   const { staffno } = req.params;
@@ -114,13 +125,12 @@ router.delete('/staff/:staffno', async (req, res) => {
       { staffno },
       { autoCommit: true }
     );
-    res.send('Staff member deleted successfully');
+    res.json({ message: 'Staff member deleted successfully' });
   } catch (err) {
     console.error('Error deleting data:', err.message);
     console.error('Stack Trace:', err.stack);
-    res.status(500).send(`Error deleting data: ${err.message}`);
+    res.status(500).json({ error: `Error deleting data: ${err.message}` });
   }
 });
 
 module.exports = router;
-

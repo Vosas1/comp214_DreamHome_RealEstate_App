@@ -21,11 +21,15 @@ function Properties() {
     floorplan: ''
   });
   const [isEditing, setIsEditing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');  // Added error message state
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  useEffect(() => {
+    handleSearchAndFilter();
+  }, [searchTerm, filterCity, filterRooms]);
 
   const fetchProperties = () => {
     fetch('http://localhost:3001/api/properties')
@@ -36,10 +40,6 @@ function Properties() {
       })
       .catch(error => console.error('Error fetching properties:', error));
   };
-
-  useEffect(() => {
-    handleSearchAndFilter();
-  }, [searchTerm, filterCity, filterRooms]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -71,7 +71,7 @@ function Properties() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setErrorMessage('');  // Clear previous error message
+    setErrorMessage('');
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing
       ? `http://localhost:3001/api/properties/${newProperty.propertyno}`
@@ -85,10 +85,11 @@ function Properties() {
       body: JSON.stringify(newProperty)
     })
       .then(response => {
-        if (!response.ok) {
+        if (response.ok) {
+          return response.json(); // Return JSON response
+        } else {
           return response.text().then(text => { throw new Error(text); });
         }
-        return response.json();
       })
       .then((data) => {
         if (isEditing) {
@@ -116,12 +117,25 @@ function Properties() {
       })
       .catch(error => {
         console.error('Error creating/updating property:', error);
-        setErrorMessage('Incorrect configuration. Please check the input values.');
+        setErrorMessage('Error creating/updating property: ' + error.message);
       });
   };
 
   const handleEdit = (property) => {
-    setNewProperty(property);
+    setNewProperty({
+      propertyno: property[0],
+      street: property[1],
+      city: property[2],
+      postcode: property[3],
+      type: property[4],
+      rooms: property[5],
+      rent: property[6],
+      ownerno: property[7],
+      staffno: property[8],
+      branchno: property[9],
+      picture: property[10],
+      floorplan: property[11]
+    });
     setIsEditing(true);
   };
 
@@ -130,10 +144,14 @@ function Properties() {
       method: 'DELETE',
     })
       .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to delete data');
+        if (response.ok) {
+          setProperties(properties.filter(property => property[0] !== propertyno));
+          setFilteredProperties(properties.filter(property => property[0] !== propertyno));
+        } else {
+          return response.text().then(errorData => {
+            throw new Error(errorData || 'Failed to delete property');
+          });
         }
-        fetchProperties(); // Refetch data after delete
       })
       .catch(error => console.error('Error deleting property:', error));
   };
@@ -141,7 +159,7 @@ function Properties() {
   return (
     <div>
       <h2>Properties</h2>
-      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}  {/* Display error message */}
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
       <div>
         <input
           type="text"
